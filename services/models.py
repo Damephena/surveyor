@@ -3,21 +3,13 @@ import datetime
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.text import slugify
-from django.core.exceptions import ValidationError
 
-def validate_list(args):
+from utils.validate_list import validate_list
 
-    """Verifies that there is at least two choices in choices
-    :param String choices: The string representing the user choices.
-    """
-    values = args.split(',')
-
-    if len(values) < 2:
-        raise ValidationError(
-        'A list of choices separated by "," is expected. Choices must contain more than one item.'
-    )
 
 class Survey(models.Model):
+
+    '''Survey model.'''
     name = models.CharField(max_length=300)
     description = models.TextField()
     cover_image = models.FileField(upload_to='survey/covers/%Y%m/%d/', blank=True, null=True)
@@ -36,17 +28,24 @@ class Survey(models.Model):
 
     def __str__(self):
         return self.name
-    
+
     def slugify(self):
         return slugify(str(self))
-    
-    def get_question(self):
+
+    def get_questions(self):
         if self.pk:
             return Question.objects.filter(survey=self.pk)
+        return None
+    
+    def get_categories(self):
+        if self.pk:
+            return Category.objects.filter(survey=self.pk)
         return None
 
 
 class Category(models.Model):
+
+    '''Category model'''
     name = models.CharField(max_length=120)
     survey = models.ForeignKey('Survey', on_delete=models.CASCADE)
 
@@ -61,6 +60,8 @@ class Category(models.Model):
 
 
 class Question(models.Model):
+
+    '''Question model'''
     QUESTION_TYPES = (
         ('text', 'text'),
         ('radio', 'radio'),
@@ -70,10 +71,14 @@ class Question(models.Model):
     )
 
     text = models.TextField()
-    required = models.BooleanField(default=False, null=True)
+    required = models.BooleanField(default=False, blank=True)
     category = models.ForeignKey('Category', on_delete=models.CASCADE, blank=True, null=True)
     survey = models.ForeignKey('Survey', on_delete=models.CASCADE)
-    question_type = models.CharField(max_length=20)
+    question_type = models.CharField(
+        max_length=20,
+        choices=QUESTION_TYPES,
+        default='text'
+    )
     choices = models.TextField(
         null=True,
         blank=True,
@@ -102,6 +107,7 @@ class Question(models.Model):
 
 
 class Response(models.Model):
+    
     '''
     Model which contains all surveys with basic information about the `user`s who responded to surveys and surveyors.
     '''
@@ -121,25 +127,39 @@ class Response(models.Model):
 
 
 class AnswerBase(models.Model):
+
+    '''Answer Base model is an sub-parent model'''
     question = models.ForeignKey('Question', on_delete=models.CASCADE, related_name='answers')
     response = models.ForeignKey('Response', on_delete=models.CASCADE)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
-# these type-specific answer models use a text field to allow for flexible
-# field sizes depending on the actual question this answer corresponds to. any
-# "required" attribute will be enforced by the form.
+
 class AnswerText(AnswerBase):
-	body = models.TextField(blank=True, null=True)
+
+    '''A text child model'''
+    body = models.TextField(blank=True, null=True)
+
 
 class AnswerRadio(AnswerBase):
-	body = models.TextField(blank=True, null=True)
+
+    '''A radio child model'''
+    body = models.TextField(blank=True, null=True)
+
 
 class AnswerSelect(AnswerBase):
-	body = models.TextField(blank=True, null=True)
+
+    '''A `select` child model'''
+    body = models.TextField(blank=True, null=True)
+
 
 class AnswerSelectMultiple(AnswerBase):
-	body = models.TextField(blank=True, null=True)
+
+    '''Multiple select child model'''
+    body = models.TextField(blank=True, null=True)
+
 
 class AnswerInteger(AnswerBase):
-	body = models.IntegerField(blank=True, null=True)
+
+    '''Integer child model'''
+    body = models.IntegerField(blank=True, null=True)
