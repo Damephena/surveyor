@@ -49,9 +49,9 @@ class ResponseSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class AnswerBaseSerializer(serializers.ModelSerializer):
+class AnswerSerializer(serializers.ModelSerializer):
 
-    '''AnswerBase serializer'''
+    '''Answer serializer'''
     class Meta:
-        model = models.AnswerBase
+        model = models.Answer
         fields = '__all__'
